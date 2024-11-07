@@ -34,3 +34,4 @@
 md5/*
 subprojects/*
 .cache/*
+compile_commands.json
