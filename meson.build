@@ -6,3 +6,4 @@ project(
 )
 
 subdir('zad2')
+# subdir('piotr-test')
