@@ -1,4 +1,6 @@
+#include <assert.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,9 +8,13 @@
 
 #include <check.h>
 
-static size_t sscanfArray(const char str[], uint8_t bytes[16]);
+static void reverseWord(uint8_t data[4]);
+static size_t sscanfArray(const char str[],
+                          uint8_t bytes[16 * sizeof(uint64_t)]);
 
 int main(void) {
+  messageSetVerbose(true);
+
   const char str1[] =
       "2dd31d1 c4eee6c5 69a3d69 5cf9af98 87b5ca2f ab7e4612 3e580440 897ffbb8 "
       "634ad55 2b3f409 8388e483 5a417125 e8255108 9fc9cdf7 f2bd1dd9 "
@@ -24,10 +30,10 @@ int main(void) {
       "d11d0b96 9c7b41dc f497d8e4 d555655a 479a7335 cfdebf0 66f12930 8fb109d1 "
       "797f2775 eb5cd530 baade822 5c154c79 ddcb74ed 6dd3c55f 580a9bb1 e3a7cc35";
 
-  uint8_t bytes1[16];
-  uint8_t bytes2[16];
-  uint8_t bytes3[16];
-  uint8_t bytes4[16];
+  uint8_t bytes1[16 * sizeof(uint64_t)];
+  uint8_t bytes2[16 * sizeof(uint64_t)];
+  uint8_t bytes3[16 * sizeof(uint64_t)];
+  uint8_t bytes4[16 * sizeof(uint64_t)];
 
   if (sscanfArray(str1, bytes1) != 16) {
     return EXIT_FAILURE;
@@ -41,6 +47,9 @@ int main(void) {
   if (sscanfArray(str4, bytes4) != 16) {
     return EXIT_FAILURE;
   }
+
+  assert(memcmp(bytes1, bytes3, sizeof(bytes1)) != 0);
+  assert(memcmp(bytes2, bytes4, sizeof(bytes1)) != 0);
 
   int exitCode = EXIT_SUCCESS;
   Message* m1 = messageNew(sizeof(bytes1), bytes1);
@@ -82,17 +91,37 @@ delete_m1:
   return exitCode;
 }
 
-static size_t sscanfArray(const char str[], uint8_t bytes[16]) {
+static size_t sscanfArray(const char str[],
+                          uint8_t bytes[16 * sizeof(uint64_t)]) {
   size_t count = 0;
   char* endptr;
   while (*str != '\0' && count < 16) {
-    uint64_t value = strtoull(str, &endptr, 16); // Parse as unsigned long long
+    uint32_t value = strtoul(str, &endptr, 16); // Parse as unsigned long long
+    if (value == 0) {
+      return 0;
+    }
+    printf("%" PRIx32, value);
     if (str == endptr) {
       break; // No more numbers to parse
     }
-    bytes[count++] = value;
+    printf(" ");
+    uint8_t tempbuf[4];
+    memcpy(tempbuf, &value, sizeof(value));
+    reverseWord(tempbuf);
+    memcpy(&bytes[count * 4], &value, sizeof(value));
     str = endptr;
+    count++;
   }
+  puts("");
 
   return count;
+}
+
+static void reverseWord(uint8_t data[4]) {
+  uint8_t temp = data[3];
+  data[3] = data[0];
+  data[0] = temp;
+  temp = data[2];
+  data[2] = data[1];
+  data[1] = temp;
 }

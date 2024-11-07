@@ -1,5 +1,6 @@
 #include <check.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <mbedtls/md5.h>
 
 #include <stdint.h>
@@ -7,9 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+static bool VERBOSE = false;
+
 static Message* mergeMessages(Message* restrict m1, Message* restrict m2);
 static void reverseWords32(Message* m);
 static int messageMD5(const Message* m, uint8_t result[16]);
+static void printHash(const uint8_t bytes[16]);
 
 typedef struct Message {
   size_t size;
@@ -75,7 +79,15 @@ bool messageCheckCollision(Message* restrict m1, Message* restrict m2,
     goto delete_bytes2;
   }
 
-  result = memcmp(hash1, hash2, m1->size) == 0;
+  result = memcmp(hash1, hash2, sizeof(hash1)) == 0;
+
+  if (VERBOSE) {
+    printf("hash1: ");
+    printHash(hash1);
+    printf("\nhash2: ");
+    printHash(hash2);
+    puts("");
+  }
 
 delete_bytes2:
   messageDelete(bytes2);
@@ -89,7 +101,23 @@ static Message* mergeMessages(Message* restrict m1, Message* restrict m2) {
   Message* const result = calloc(
       sizeof(*result) + (m1->size + m2->size) * sizeof(result->data[0]), 1);
   // Note: if callaloc fails -> return NULL
+  memcpy(result->data, m1->data, m1->size);
+  memcpy(&result->data[sizeof(m2->size)], m2->data, m2->size);
+  result->size = m1->size + m2->size;
+
   return result;
+}
+
+static void reverseWord(uint32_t* w) {
+  uint8_t data[4];
+  memcpy(data, w, sizeof(*w));
+  uint8_t temp = data[3];
+  data[3] = data[0];
+  data[0] = temp;
+  temp = data[2];
+  data[2] = data[1];
+  data[1] = temp;
+  memcpy(w, data, sizeof(*w));
 }
 
 static void reverseWords32(Message* const m) {
@@ -111,4 +139,15 @@ static void reverseWords32(Message* const m) {
 
 static int messageMD5(const Message* const m, uint8_t result[const 16]) {
   return mbedtls_md5(m->data, m->size, result);
+}
+
+void messageSetVerbose(bool isVerbose) { VERBOSE = isVerbose; }
+
+static void printHash(const uint8_t bytes[const 16]) {
+  for (size_t i = 0; i < 16; i += 4) {
+    uint32_t word = 0;
+    memcpy(&word, &bytes[i], sizeof(word));
+    reverseWord(&word);
+    printf("%" SCNx32 " ", word);
+  }
 }

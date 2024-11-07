@@ -3,7 +3,7 @@ lib_src = files(['src/check.c'])
 
 cmake = import('cmake')
 sub_proj = cmake.subproject('mbedtls-3.6.2')
-cm_lib = sub_proj.dependency('mbedtls')
+cm_lib = sub_proj.dependency('mbedcrypto')
 
 lib = static_library(
     'check_lib',
