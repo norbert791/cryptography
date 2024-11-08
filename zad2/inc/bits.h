@@ -2,9 +2,10 @@
 #define ZAD2_BITS_H
 
 #include <inttypes.h>
+#include <md5.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 static inline void reverseWords(uint32_t words[const], size_t sourceLen) {
@@ -63,6 +64,26 @@ static inline void bitsPrintBytes(uint8_t bytes[], size_t len) {
     }
   }
   puts("");
+}
+
+static inline bool checkCollision(uint8_t m1[], uint8_t m2[], uint8_t m3[],
+                                  uint8_t m4[], size_t len) {
+
+  uint8_t hash1[16];
+  uint8_t hash2[16];
+
+  MD5_CTX ctx;
+  md5_init(&ctx);
+  md5_update(&ctx, m1, len);
+  md5_update(&ctx, m2, len);
+  md5_final(&ctx, hash1);
+
+  md5_init(&ctx);
+  md5_update(&ctx, m3, len);
+  md5_update(&ctx, m4, len);
+  md5_final(&ctx, hash2);
+
+  return memcmp(hash1, hash2, sizeof(hash1)) == 0;
 }
 
 #endif // ZAD2_BITS_H

@@ -17,6 +17,7 @@ uint8_t* getData(Message* msg);
 
 bool messageCheckCollision(Message* restrict m1, Message* restrict m2,
                            Message* restrict m3, Message* restrict m4);
+
 void messageSetVerbose(bool isVerbose);
 
 #endif // ZAD2_CHECK_H
